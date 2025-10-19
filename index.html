@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yumcraze - Discover Delicious Recipes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0D0D0D;
+            --text-color: #E5E7EB; /* Changed for better contrast */
+            --spotlight-color-1: rgba(120, 83, 204, 0.15); /* Purpleish */
+            --spotlight-color-2: rgba(59, 130, 246, 0.1);  /* Bluish */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* --- Gradient Spotlight Effect --- */
+        .spotlight-effect {
+            position: relative;
+        }
+
+        .spotlight-effect::before {
+            content: '';
+            position: absolute;
+            top: var(--y, 50%);
+            left: var(--x, 50%);
+            transform: translate(-50%, -50%);
+            width: 800px;
+            height: 800px;
+            background-image: radial-gradient(circle, var(--spotlight-color-1) 0%, var(--spotlight-color-2) 40%, transparent 80%);
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+
+        .spotlight-effect:hover::before {
+            opacity: 1;
+        }
+        
+        /* --- Scroll-triggered Animations --- */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- Custom Scrollbar --- */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #395886;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #628ECB;
+        }
+
+        /* --- Hero text animation --- */
+        .hero-text-item {
+            opacity: 0;
+            filter: blur(5px);
+            transform: translateY(20px);
+            animation: fadeInBlur 1s forwards;
+        }
+        
+        .hero-text-item:nth-child(1) { animation-delay: 0.2s; }
+        .hero-text-item:nth-child(2) { animation-delay: 0.6s; }
+        .hero-text-item:nth-child(3) { animation-delay: 1.0s; }
+
+        @keyframes fadeInBlur {
+            to {
+                opacity: 1;
+                filter: blur(0);
+                transform: translateY(0);
+            }
+        }
+        
+        /* --- Modal Styling --- */
+        #recipeModal {
+            transition: opacity 0.3s ease-in-out;
+        }
+        #recipeModal .modal-content {
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="spotlight-effect">
+
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-gray-800/50">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+             <a href="#" class="flex items-center space-x-3 text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#B1C9EF] to-[#628ECB]">
+                <svg class="w-8 h-8 text-[#B1C9EF]" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12.0001 2.5C8.10009 2.5 5.50009 5.1 5.50009 8.5C5.50009 8.87 5.53009 9.24 5.60009 9.59H3.00009V11.59H5.66009C5.70009 11.93 5.76009 12.26 5.83009 12.59H3.00009V14.59H5.91009C6.31009 17.22 8.56009 19.25 11.3001 19.85V21.5H12.7001V19.85C15.4401 19.25 17.6901 17.22 18.0901 14.59H21.0001V12.59H18.1701C18.2401 12.26 18.3001 11.93 18.3401 11.59H21.0001V9.59H18.4001C18.4701 9.24 18.5001 8.87 18.5001 8.5C18.5001 5.1 15.9001 2.5 12.0001 2.5ZM12.0001 4.5C14.7101 4.5 16.5001 6.29 16.5001 8.5C16.5001 10.71 14.7101 12.5 12.0001 12.5C9.29009 12.5 7.50009 10.71 7.50009 8.5C7.50009 6.29 9.29009 4.5 12.0001 4.5Z"></path>
+                </svg>
+                <span>Yumcraze</span>
+             </a>
+            <nav class="hidden md:flex space-x-8 items-center">
+                <a href="#about" class="text-gray-300 hover:text-white transition duration-300">About</a>
+                <a href="#search" class="text-gray-300 hover:text-white transition duration-300">Search</a>
+                <a href="#categories" class="text-gray-300 hover:text-white transition duration-300">Categories</a>
+                <button id="random-meal-nav" class="bg-gradient-to-r from-[#628ECB] to-[#395886] text-white px-4 py-2 rounded-md hover:opacity-90 transition duration-300">Surprise Me!</button>
+            </nav>
+            <button class="md:hidden text-white">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="pt-20">
+        <!-- Hero Section -->
+        <section class="min-h-[70vh] md:min-h-screen flex items-center justify-center relative overflow-hidden bg-cover bg-center" style="background-image: linear-gradient(rgba(13, 13, 13, 0.8), rgba(13, 13, 13, 1)), url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070&auto=format&fit=crop');">
+             <div class="text-center px-6">
+                <h1 class="hero-text-item text-4xl md:text-7xl font-extrabold text-white mb-4 tracking-tight">Discover <span class="bg-clip-text text-transparent bg-gradient-to-r from-[#B1C9EF] to-[#628ECB]">Delicious</span> Recipes</h1>
+                <p class="hero-text-item text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-8">From quick bites to gourmet feasts, find the perfect recipe for any occasion.</p>
+                <div class="hero-text-item max-w-2xl mx-auto">
+                    <form id="search-form-hero" class="relative">
+                        <input id="search-input-hero" type="text" placeholder="Search for a meal..." class="w-full bg-gray-900/50 border border-gray-700 text-white rounded-full py-4 pl-6 pr-36 focus:outline-none focus:ring-2 focus:ring-[#628ECB] backdrop-blur-sm transition duration-300">
+                        <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-[#628ECB] to-[#395886] text-white px-8 py-3 rounded-full hover:opacity-90 transition duration-300">Search</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about" class="py-24 sm:py-32 overflow-hidden">
+            <div class="container mx-auto px-6">
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    <div class="reveal">
+                        <img src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=1974&auto=format&fit=crop" class="rounded-2xl shadow-2xl shadow-purple-900/10 transform md:rotate-3" alt="Plate of grilled delicious food">
+                    </div>
+                    <div class="reveal">
+                        <h2 class="text-3xl md:text-4xl font-bold mb-6 text-white">Why <span class="bg-clip-text text-transparent bg-gradient-to-r from-[#B1C9EF] to-[#628ECB]">Yumcraze?</span></h2>
+                        <p class="text-gray-300 text-lg mb-8">
+                            Yumcraze is your ultimate culinary companion, designed for food lovers of all levels. We bring thousands of recipes from around the world right to your fingertips, making it easy to discover, cook, and share delicious meals.
+                        </p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div class="flex items-start space-x-4">
+                                <div class="flex-shrink-0 bg-gray-800/50 p-3 rounded-full">
+                                    <svg class="w-6 h-6 text-[#B1C9EF]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2h10a2 2 0 002-2v-1a2 2 0 012-2h1.945M7.707 15.707a2 2 0 01-2.828 0l-1.414-1.414a2 2 0 010-2.828l3.182-3.182a2 2 0 012.828 0l1.414 1.414a2 2 0 010 2.828l-3.182 3.182z"></path></svg>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-white">Global Recipes</h4>
+                                    <p class="text-gray-400">Explore dishes from every corner of the globe.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start space-x-4">
+                                <div class="flex-shrink-0 bg-gray-800/50 p-3 rounded-full">
+                                    <svg class="w-6 h-6 text-[#B1C9EF]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-white">Easy Instructions</h4>
+                                    <p class="text-gray-400">Clear, step-by-step guides for perfect results.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Search & Results Section -->
+        <section id="search" class="py-24 sm:py-32 bg-[#121212]">
+            <div class="container mx-auto px-6">
+                <div class="reveal text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-4 text-white">Find Your Next Favorite Meal</h2>
+                     <p class="text-gray-300 text-lg max-w-2xl mx-auto">Search by name to instantly find recipes.</p>
+                </div>
+                <div id="results-heading" class="text-center text-2xl font-semibold my-8 hidden"></div>
+                <div id="meal-results" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                    <!-- Meal cards will be injected here -->
+                </div>
+                 <div id="no-results" class="text-center text-gray-300 text-lg mt-8 hidden">
+                    <p>Sorry, we couldn't find any meals. Try a different search!</p>
+                </div>
+                <div id="load-more-container" class="text-center mt-12 hidden">
+                    <button id="load-more-btn" class="bg-gradient-to-r from-[#8AAEEO] via-[#628ECB] to-[#395886] text-white font-bold px-12 py-3 rounded-full hover:scale-105 transform transition-transform duration-300">
+                        Load More Recipes
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Meal Categories Section -->
+        <section id="categories" class="py-24 sm:py-32">
+            <div class="container mx-auto px-6">
+                 <div class="reveal text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-4 text-white">Explore by Category</h2>
+                     <p class="text-gray-300 text-lg max-w-2xl mx-auto">Browse through various meal categories to find what you're craving.</p>
+                </div>
+                <div id="category-pills">
+                    <!-- Category cards will be injected here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Random Meal Section -->
+        <section id="random" class="py-24 sm:py-32 bg-cover bg-center bg-fixed" style="background-image: linear-gradient(rgba(13, 13, 13, 0.85), rgba(13, 13, 13, 0.95)), url('https://images.unsplash.com/photo-1543353071-873f6b64a67d?q=80&w=1974&auto=format&fit=crop');">
+             <div class="container mx-auto px-6 text-center">
+                 <div class="reveal max-w-3xl mx-auto">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-4">Feeling Adventurous?</h2>
+                    <p class="text-gray-300 text-lg mb-8">Let fate decide your next meal. Click the button below for a random recipe!</p>
+                    <button id="random-meal-main" class="bg-gradient-to-r from-[#8AAEEO] via-[#628ECB] to-[#395886] text-white font-bold px-12 py-4 rounded-full hover:scale-105 transform transition-transform duration-300 shadow-lg shadow-blue-500/20">
+                        Surprise Me!
+                    </button>
+                 </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[#121212] border-t border-gray-800/50 pt-16 pb-8">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8 text-center md:text-left">
+                <!-- Col 1: Brand -->
+                <div class="flex flex-col items-center md:items-start">
+                     <a href="#" class="flex items-center space-x-3 text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#B1C9EF] to-[#628ECB]">
+                        <svg class="w-8 h-8 text-[#B1C9EF]" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                           <path d="M12.0001 2.5C8.10009 2.5 5.50009 5.1 5.50009 8.5C5.50009 8.87 5.53009 9.24 5.60009 9.59H3.00009V11.59H5.66009C5.70009 11.93 5.76009 12.26 5.83009 12.59H3.00009V14.59H5.91009C6.31009 17.22 8.56009 19.25 11.3001 19.85V21.5H12.7001V19.85C15.4401 19.25 17.6901 17.22 18.0901 14.59H21.0001V12.59H18.1701C18.2401 12.26 18.3001 11.93 18.3401 11.59H21.0001V9.59H18.4001C18.4701 9.24 18.5001 8.87 18.5001 8.5C18.5001 5.1 15.9001 2.5 12.0001 2.5ZM12.0001 4.5C14.7101 4.5 16.5001 6.29 16.5001 8.5C16.5001 10.71 14.7101 12.5 12.0001 12.5C9.29009 12.5 7.50009 10.71 7.50009 8.5C7.50009 6.29 9.29009 4.5 12.0001 4.5Z"></path>
+                        </svg>
+                        <span>Yumcraze</span>
+                     </a>
+                     <p class="text-gray-400 mt-4 text-sm">Your daily dose of deliciousness.</p>
+                </div>
+                <!-- Col 2: Links -->
+                <div>
+                    <h4 class="font-bold text-white mb-4">Explore</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#about" class="text-gray-400 hover:text-white transition-colors duration-300">About</a></li>
+                        <li><a href="#categories" class="text-gray-400 hover:text-white transition-colors duration-300">Categories</a></li>
+                        <li><a href="#random" class="text-gray-400 hover:text-white transition-colors duration-300">Random Recipe</a></li>
+                    </ul>
+                </div>
+                <!-- Col 3: Social -->
+                <div>
+                    <h4 class="font-bold text-white mb-4">Connect</h4>
+                    <div class="flex space-x-4 justify-center md:justify-start">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors duration-300" aria-label="Twitter">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.223.085a4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors duration-300" aria-label="GitHub">
+                           <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.165 6.839 9.49.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.031-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.03 1.595 1.03 2.688 0 3.848-2.338 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.001 10.001 0 0022 12c0-5.523-4.477-10-10-10z" clip-rule="evenodd" /></svg>
+                        </a>
+                         <a href="#" class="text-gray-400 hover:text-white transition-colors duration-300" aria-label="Instagram">
+                           <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.85s-.011 3.584-.069 4.85c-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07s-3.584-.012-4.85-.07c-3.252-.148-4.771-1.691-4.919-4.919-.058-1.265-.069-1.645-.069-4.85s.011-3.584.069-4.85c.149-3.225 1.664-4.771 4.919-4.919C8.416 2.175 8.796 2.163 12 2.163zm0 1.441c-3.141 0-3.504.012-4.726.068-2.677.122-3.996 1.448-4.118 4.118-.056 1.222-.067 1.585-.067 4.726s.011 3.504.067 4.726c.122 2.677 1.448 3.996 4.118 4.118 1.222.056 1.585.067 4.726.067s3.504-.011 4.726-.067c2.677-.122 3.996-1.448 4.118-4.118.056-1.222.067-1.585.067-4.726s-.011-3.504-.067-4.726c-.122-2.677-1.448-3.996-4.118-4.118-1.222-.056-1.585-.067-4.726-.067zM12 8.25a3.75 3.75 0 100 7.5 3.75 3.75 0 000-7.5zM12 14a2 2 0 110-4 2 2 0 010 4zm6.406-7.188a.938.938 0 100-1.875.938.938 0 000 1.875z"/></svg>
+                        </a>
+                    </div>
+                </div>
+                 <!-- Col 4: Newsletter -->
+                 <div>
+                    <h4 class="font-bold text-white mb-4">Stay Updated</h4>
+                     <p class="text-gray-400 mb-4 text-sm">Get the latest recipes sent to your inbox.</p>
+                     <form class="flex">
+                        <input type="email" placeholder="Enter your email" class="w-full bg-gray-800/50 border border-gray-700 text-white rounded-l-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#628ECB] transition duration-300 text-sm">
+                        <button type="submit" class="bg-gradient-to-r from-[#628ECB] to-[#395886] text-white px-4 py-2 rounded-r-md hover:opacity-90 transition duration-300 text-sm">Go</button>
+                    </form>
+                </div>
+            </div>
+            <div class="border-t border-gray-800/50 pt-8 mt-8 text-center text-sm text-gray-500">
+                <p>&copy; 2025 Yumcraze. All rights reserved. Powered by <a href="https://www.themealdb.com" target="_blank" class="hover:text-white">TheMealDB API</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+
+    <!-- Recipe Details Modal -->
+    <div id="recipeModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm opacity-0 pointer-events-none">
+        <div class="modal-content w-full max-w-4xl max-h-[90vh] bg-[#18181B] rounded-2xl shadow-2xl shadow-purple-900/10 opacity-0 transform scale-95">
+             <div class="p-6 sm:p-8 flex justify-between items-center border-b border-gray-700">
+                <h2 id="modal-title" class="text-2xl sm:text-3xl font-bold text-white">Recipe Details</h2>
+                <button id="closeModal" class="text-gray-400 hover:text-white transition duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div id="modal-body" class="overflow-y-auto p-6 sm:p-8" style="max-height: calc(90vh - 80px);">
+                <!-- Modal content injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- API Endpoints ---
+            const API_URLS = {
+                search: 'https://www.themealdb.com/api/json/v1/1/search.php?s=',
+                lookup: 'https://www.themealdb.com/api/json/v1/1/lookup.php?i=',
+                random: 'https://www.themealdb.com/api/json/v1/1/random.php',
+                categories: 'https://www.themealdb.com/api/json/v1/1/categories.php',
+                filterByCategory: 'https://www.themealdb.com/api/json/v1/1/filter.php?c='
+            };
+
+            // --- State for pagination ---
+            let allMeals = [];
+            let displayedCount = 0;
+            const MEALS_PER_PAGE = 12;
+
+            // --- Element Selectors ---
+            const mealResults = document.getElementById('meal-results');
+            const resultsHeading = document.getElementById('results-heading');
+            const noResults = document.getElementById('no-results');
+            const searchFormHero = document.getElementById('search-form-hero');
+            const searchInputHero = document.getElementById('search-input-hero');
+            const categoryPillsContainer = document.getElementById('category-pills');
+            const randomMealButtons = [document.getElementById('random-meal-nav'), document.getElementById('random-meal-main')];
+            const loadMoreContainer = document.getElementById('load-more-container');
+            const loadMoreBtn = document.getElementById('load-more-btn');
+            
+            // Modal elements
+            const modal = document.getElementById('recipeModal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const closeModalBtn = document.getElementById('closeModal');
+
+
+            // --- Functions ---
+            const fetchData = async (url) => {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return await response.json();
+                } catch (error) {
+                    console.error('Failed to fetch data:', error);
+                    return null;
+                }
+            };
+
+            const loadMoreMeals = () => {
+                const mealSlice = allMeals.slice(displayedCount, displayedCount + MEALS_PER_PAGE);
+
+                mealSlice.forEach(meal => {
+                    const mealCard = `
+                        <div class="reveal bg-gray-900/50 rounded-xl overflow-hidden group transform hover:-translate-y-2 transition-all duration-300 ease-in-out cursor-pointer shadow-lg hover:shadow-2xl hover:shadow-purple-500/10 border border-gray-800/50" data-meal-id="${meal.idMeal}">
+                            <div class="relative">
+                                <img src="${meal.strMealThumb}" alt="${meal.strMeal}" class="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500">
+                                <div class="absolute inset-0 bg-black/20 group-hover:bg-gradient-to-t from-black/80 via-transparent to-transparent transition-all duration-300"></div>
+                                <div class="absolute bottom-0 left-0 p-4">
+                                     <h3 class="text-lg font-bold text-white">${meal.strMeal}</h3>
+                                     ${meal.strCategory ? `<p class="text-sm text-gray-300">${meal.strCategory}</p>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    mealResults.insertAdjacentHTML('beforeend', mealCard);
+                });
+
+                // Add event listeners to new cards
+                mealResults.querySelectorAll(`[data-meal-id]:not([data-listener-added])`).forEach(card => {
+                    card.addEventListener('click', () => getMealDetails(card.dataset.mealId));
+                    card.dataset.listenerAdded = "true";
+                });
+
+                displayedCount += mealSlice.length;
+
+                // Update button visibility
+                if (displayedCount >= allMeals.length) {
+                    loadMoreContainer.classList.add('hidden');
+                } else {
+                    loadMoreContainer.classList.remove('hidden');
+                }
+
+                // Re-init animations for new elements
+                setupScrollAnimations();
+            };
+            
+            const displayMeals = (meals, heading = '') => {
+                // Reset everything
+                mealResults.innerHTML = '';
+                allMeals = meals || [];
+                displayedCount = 0;
+                noResults.classList.add('hidden');
+                resultsHeading.textContent = heading;
+                resultsHeading.classList.toggle('hidden', !heading);
+                
+                if (!allMeals || allMeals.length === 0) {
+                    noResults.classList.remove('hidden');
+                    loadMoreContainer.classList.add('hidden');
+                    return;
+                }
+
+                loadMoreMeals(); // Load the first batch
+            };
+
+            const searchMeals = async (e) => {
+                e.preventDefault();
+                const searchTerm = searchInputHero.value.trim();
+                if (!searchTerm) return;
+                
+                const data = await fetchData(`${API_URLS.search}${searchTerm}`);
+                displayMeals(data.meals, `Search results for "${searchTerm}"`);
+                
+                const searchSection = document.getElementById('search');
+                searchSection.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            const getMealDetails = async (mealId) => {
+                const data = await fetchData(`${API_URLS.lookup}${mealId}`);
+                if (data && data.meals) {
+                    displayRecipeModal(data.meals[0]);
+                }
+            };
+
+            const displayRecipeModal = (meal) => {
+                modalTitle.textContent = meal.strMeal;
+
+                const ingredients = [];
+                for (let i = 1; i <= 20; i++) {
+                    if (meal[`strIngredient${i}`]) {
+                        ingredients.push(`
+                            <li class="flex items-center space-x-3 bg-gray-800/50 p-2 rounded-md">
+                                <span class="font-semibold text-[#B1C9EF]">${meal[`strMeasure${i}`]}</span>
+                                <span class="text-gray-300">${meal[`strIngredient${i}`]}</span>
+                            </li>
+                        `);
+                    }
+                }
+
+                const tags = meal.strTags ? meal.strTags.split(',').map(tag => `<span class="bg-[#395886] text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full text-white">${tag}</span>`).join('') : 'No tags';
+
+                modalBody.innerHTML = `
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div>
+                             <img src="${meal.strMealThumb}" alt="${meal.strMeal}" class="w-full h-auto object-cover rounded-lg shadow-md mb-6">
+                             <div class="flex flex-wrap items-center gap-4 mb-4 text-sm">
+                                <p><strong class="font-semibold text-[#8AAEEO]">Category:</strong> ${meal.strCategory}</p>
+                                <p><strong class="font-semibold text-[#8AAEEO]">Cuisine:</strong> ${meal.strArea}</p>
+                             </div>
+                             <div>${tags}</div>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Ingredients</h3>
+                            <ul class="space-y-2 mb-6">${ingredients.join('')}</ul>
+                            
+                            <h3 class="text-2xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Instructions</h3>
+                            <p class="text-gray-300 whitespace-pre-line leading-relaxed">${meal.strInstructions}</p>
+                            
+                            ${meal.strYoutube ? `
+                            <div class="mt-6">
+                                <h3 class="text-2xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Video Recipe</h3>
+                                <div class="aspect-w-16 aspect-h-9">
+                                    <iframe src="https://www.youtube.com/embed/${meal.strYoutube.slice(-11)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="rounded-lg w-full h-full"></iframe>
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                
+                openModal();
+            };
+
+            const openModal = () => {
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                modal.querySelector('.modal-content').classList.remove('opacity-0', 'scale-95');
+                document.body.style.overflow = 'hidden';
+            };
+
+            const closeModal = () => {
+                modal.classList.add('opacity-0', 'pointer-events-none');
+                modal.querySelector('.modal-content').classList.add('opacity-0', 'scale-95');
+                 document.body.style.overflow = 'auto';
+            };
+
+            const fetchRandomMeal = async () => {
+                const data = await fetchData(API_URLS.random);
+                if (data && data.meals) {
+                    displayRecipeModal(data.meals[0]);
+                }
+            };
+            
+            const fetchAndDisplayCategories = async () => {
+                const data = await fetchData(API_URLS.categories);
+                if (data && data.categories) {
+                    categoryPillsContainer.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4 md:gap-6';
+                    categoryPillsContainer.innerHTML = data.categories.map(cat => `
+                        <div class="reveal category-card group aspect-square relative rounded-lg overflow-hidden cursor-pointer transform hover:-translate-y-1 transition-transform duration-300 ease-in-out shadow-lg hover:shadow-xl hover:shadow-purple-500/10 border border-gray-800/50" data-category="${cat.strCategory}">
+                            <img src="${cat.strCategoryThumb}" alt="${cat.strCategory}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end justify-center p-4 transition-all duration-300">
+                                <h4 class="text-white font-semibold text-center text-sm md:text-base">${cat.strCategory}</h4>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    categoryPillsContainer.querySelectorAll('.category-card').forEach(card => {
+                        card.addEventListener('click', async () => {
+                            const category = card.dataset.category;
+                            const mealData = await fetchData(`${API_URLS.filterByCategory}${category}`);
+                            displayMeals(mealData.meals, `${category} Recipes`);
+                             document.getElementById('search').scrollIntoView({ behavior: 'smooth' });
+                        });
+                    });
+                    setupScrollAnimations();
+                }
+            };
+
+            // --- Animations ---
+            const setupScrollAnimations = () => {
+                const revealElements = document.querySelectorAll('.reveal:not(.visible)');
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                        }
+                    });
+                }, { threshold: 0.1 });
+
+                revealElements.forEach(el => observer.observe(el));
+            };
+
+            const handleSpotlightEffect = (e) => {
+                const spotlight = document.querySelector('.spotlight-effect');
+                if (spotlight) {
+                    spotlight.style.setProperty('--x', `${e.clientX}px`);
+                    spotlight.style.setProperty('--y', `${e.clientY}px`);
+                }
+            };
+
+            // --- Initial Load & Event Listeners ---
+            fetchAndDisplayCategories();
+            setupScrollAnimations();
+
+            searchFormHero.addEventListener('submit', searchMeals);
+            randomMealButtons.forEach(btn => btn.addEventListener('click', fetchRandomMeal));
+            loadMoreBtn.addEventListener('click', loadMoreMeals);
+            closeModalBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeModal();
+            });
+            document.addEventListener('mousemove', handleSpotlightEffect);
+
+            // Initial search for popular items
+             const initialSearch = async () => {
+                const data = await fetchData(`${API_URLS.filterByCategory}Vegetarian`);
+                displayMeals(data.meals, "Popular Vegetarian Dishes");
+            };
+            initialSearch();
+        });
+    </script>
+</body>
+</html>
+
